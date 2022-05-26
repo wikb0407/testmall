@@ -32,7 +32,8 @@ export default {
       observeDOM: true,
       click: true,
       probeType: this.probeType,
-      pullUpLoad: this.pullUpLoad
+      pullUpLoad: this.pullUpLoad,
+      keepAlive: true
     })
 
     // 监听滚动位置
@@ -52,14 +53,17 @@ export default {
 
   },
   methods: {
-    scrollTo(x, y, time=300){
+    scrollTo(x, y, time=300) {
       this.scroll && this.scroll.scrollTo(x, y, time)
     },
-    refresh(){
+    refresh() {
       this.scroll && this.scroll.refresh()
     },
-    finishPullUp(){
+    finishPullUp() {
       this.scroll && this.scroll.finishPullUp()
+    },
+    getScrollY() {
+      return this.scroll ? this.scroll.y : 0 
     }
   }
 }

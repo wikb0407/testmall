@@ -1,18 +1,24 @@
 <template>
   <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
-    <scroll class="content" 
-    ref="scroll" 
-    :probe-type="3" 
-    @scroll="contentScroll"
-    :pull-up-load="true"
-    @pullingUp="loadMore">
-      <home-swiper :banners="banners"></home-swiper>
-    <recommend-view :recommends="recommends"></recommend-view>
-    <feature-view></feature-view>
     <tab-control :titles="['流行','新款','精选']"
-                @tabClick="tabClick"></tab-control>
-    <goods-list :goods="showGoods"></goods-list>
+                @tabClick="tabClick"
+                ref="tabControl1"
+                class="tab-control"
+                v-show="isTabFixed"></tab-control>
+    <scroll class="content" 
+            ref="scroll" 
+            :probe-type="3" 
+            @scroll="contentScroll"
+            :pull-up-load="true"
+            @pullingUp="loadMore">
+      <home-swiper :banners="banners" @swiperImageLoad="swiperImageLoad"></home-swiper>
+      <recommend-view :recommends="recommends"></recommend-view>
+      <feature-view></feature-view>
+      <tab-control :titles="['流行','新款','精选']"
+                  @tabClick="tabClick"
+                  ref="tabControl2"></tab-control>
+      <goods-list :goods="showGoods"></goods-list>
     </scroll>
     
     <back-top @click.native="backClick" v-show="isshowBackTop"/>
@@ -20,21 +26,21 @@
 </template>
 
 <script>
-import NavBar from "@/components/common/navbar/NavBar.vue"
-import TabControl from "@/components/content/tabControl/TabControl.vue"
-import GoodsList from "@/components/content/goods/GoodsList.vue"
-import Scroll from "@/components/common/scroll/Scroll.vue"
-import BackTop from "@/components/content/backTop/BackTop.vue"
-
-import HomeSwiper from "./childComps/HomeSwiper.vue"
-import RecommendView from "./childComps/RecommendView.vue"
-import FeatureView from "./childComps/FeatureView.vue"
-
-import { 
-  getHomeMultidata,
-  getHomeGoods } from "@/network/home"
-import emitter from "@/eventbus"
-import {debounce} from "@/common/utils"
+  import NavBar from "@/components/common/navbar/NavBar.vue"
+  import TabControl from "@/components/content/tabControl/TabControl.vue"
+  import GoodsList from "@/components/content/goods/GoodsList.vue"
+  import Scroll from "@/components/common/scroll/Scroll.vue"
+  import BackTop from "@/components/content/backTop/BackTop.vue"
+  
+  import HomeSwiper from "./childComps/HomeSwiper.vue"
+  import RecommendView from "./childComps/RecommendView.vue"
+  import FeatureView from "./childComps/FeatureView.vue"
+  
+  import { 
+    getHomeMultidata,
+    getHomeGoods } from "@/network/home"
+  import emitter from "@/eventbus"
+  import {debounce} from "@/common/utils"
 
 
 
@@ -61,12 +67,22 @@ export default {
         'sell': {page: 0, list: []},
       },
       currentType: 'pop',
-      isshowBackTop: false
+      isshowBackTop: false,
+      tabOffsetTop: 0,
+      isTabFixed: false,
+      saveY: 0
     }
   },
   computed: {
     showGoods(){
       return this.goods[this.currentType].list
+    },
+    activated() {
+      this.$refs.scroll.refresh()
+      this.$refs.scroll.scrollTo(0, this.saveY, 0)
+    },
+    deactivated() {
+      this.saveY = this.$refs.scroll.getScrollY()
     }
   },
   created() {
@@ -99,6 +115,11 @@ export default {
           this.currentType = 'sell'
           break
       }
+      this.$refs.tabControl1.currentType = index
+      this.$refs.tabControl2.currentType = index
+      this.$refs.tabControl1.currentType = this.$refs.tabControl2.currentType
+      this.$refs.tabControl2.currentType = this.$refs.tabControl1.currentType
+      
     },
     getHomeMultidata(){
       getHomeMultidata().then(res => {
@@ -122,10 +143,17 @@ export default {
       this.$refs.scroll.scrollTo(0,0)
     },
     contentScroll(position){
+      // 判断是否显示滑到顶部
       this.isshowBackTop = (-position.y) > 1000
+      // 判断是否显示tab-control
+      this.isTabFixed = (-position.y) > this.tabOffsetTop
     },
     loadMore(){
       this.getHomeGoods(this.currentType)
+    },
+    swiperImageLoad(){
+      // 获取tabControl的offsetTop
+      this.tabOffsetTop = this.$refs.tabControl2.$el.offsetTop
     }
   },
 }
@@ -133,19 +161,12 @@ export default {
 
 <style scoped>
   #home {
-    padding-top: 44px;
     position: relative;
     height: 100vh;
   }
   .home-nav {
     background-color: var(--color-tint);
     color: #fff;
-
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    z-index: 9;
   }
   .content {
     overflow: hidden;
@@ -155,5 +176,9 @@ export default {
     bottom: 49px;
     left: 0;
     right: 0;
+  }
+  .tab-control {
+    position: relative;
+    z-index: 9;
   }
 </style>
